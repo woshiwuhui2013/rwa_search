@@ -640,7 +640,8 @@ export const searchRWACases = async (enterpriseData) => {
     console.log('Calling Claude API through backend proxy for:', { companyName, industry, companyType });
     
     // Call our backend proxy endpoint
-    const response = await fetch('http://localhost:8001/api/search-rwa-cases', {
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+    const response = await fetch(`${backendUrl}/api/search-rwa-cases`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

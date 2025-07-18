@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import EnterpriseForm from './components/EnterpriseForm';
 import CaseDisplay from './components/CaseDisplay';
+import { searchRWACases } from './services/claudeAPI';
 
 function App() {
   const [cases, setCases] = useState([]);
@@ -24,10 +25,6 @@ function App() {
     }
   };
 
-  const searchRWACases = async (enterpriseData) => {
-    // Claude API integration will go here
-    return { cases: [] };
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
