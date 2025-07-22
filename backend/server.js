@@ -1,29 +1,39 @@
 require('dotenv').config();
 
-// Set up global proxy BEFORE any other imports
-const globalAgent = require('global-agent');
-const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || 'http://127.0.0.1:33210';
+// Check if proxy is needed
+const useProxy = process.env.USE_PROXY === 'true';
+const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
 
-// Enable debugging
-process.env.DEBUG = 'global-agent';
-globalAgent.bootstrap({
-  environmentVariableNamespace: '',
-  forceGlobalAgent: true,
-  socketConnectionTimeout: 60000,
-});
+let proxyAgent = null;
 
-global.GLOBAL_AGENT.HTTP_PROXY = proxyUrl;
-global.GLOBAL_AGENT.HTTPS_PROXY = proxyUrl;
+if (useProxy && proxyUrl) {
+  console.log('Proxy enabled, configuring global proxy...');
+  
+  // Set up global proxy
+  const globalAgent = require('global-agent');
+  
+  // Enable debugging if needed
+  if (process.env.DEBUG_PROXY === 'true') {
+    process.env.DEBUG = 'global-agent';
+  }
+  
+  globalAgent.bootstrap({
+    environmentVariableNamespace: '',
+    forceGlobalAgent: true,
+    socketConnectionTimeout: 60000,
+  });
 
-// Force proxy for all requests
-process.env.HTTP_PROXY = proxyUrl;
-process.env.HTTPS_PROXY = proxyUrl;
-process.env.http_proxy = proxyUrl;
-process.env.https_proxy = proxyUrl;
+  global.GLOBAL_AGENT.HTTP_PROXY = proxyUrl;
+  global.GLOBAL_AGENT.HTTPS_PROXY = proxyUrl;
 
-console.log('Global proxy configured:', proxyUrl);
-console.log('GLOBAL_AGENT.HTTP_PROXY:', global.GLOBAL_AGENT.HTTP_PROXY);
-console.log('GLOBAL_AGENT.HTTPS_PROXY:', global.GLOBAL_AGENT.HTTPS_PROXY);
+  console.log('Global proxy configured:', proxyUrl);
+  
+  // Also set up undici proxy agent for Anthropic client
+  const { ProxyAgent } = require('undici');
+  proxyAgent = new ProxyAgent(proxyUrl);
+} else {
+  console.log('Proxy disabled or not configured');
+}
 
 // Check API key
 const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -90,23 +100,24 @@ function testAnthropicDomain() {
   req.end();
 }
 
-// Initialize Anthropic client with undici proxy
-const { ProxyAgent } = require('undici');
-const proxyAgent = new ProxyAgent(proxyUrl);
-
+// Initialize Anthropic client
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  fetch: (url, options) => {
-    return fetch(url, {
-      ...options,
-      dispatcher: proxyAgent,
-    });
-  },
+  ...(proxyAgent && {
+    fetch: (url, options) => {
+      return fetch(url, {
+        ...options,
+        dispatcher: proxyAgent,
+      });
+    }
+  })
 });
 
-// Test proxy on startup
-setTimeout(testProxyConnection, 2000);
-setTimeout(testAnthropicDomain, 3000);
+// Test proxy on startup (only if proxy is enabled)
+if (useProxy && proxyUrl) {
+  setTimeout(testProxyConnection, 2000);
+  setTimeout(testAnthropicDomain, 3000);
+}
 
 // Test Anthropic API with simple request
 async function testAnthropicAPI() {
@@ -291,4 +302,8 @@ app.post('/api/search-rwa-cases', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
   console.log('Claude API Key configured:', process.env.ANTHROPIC_API_KEY ? 'Yes' : 'No');
+  console.log('Proxy enabled:', useProxy ? 'Yes' : 'No');
+  if (useProxy && proxyUrl) {
+    console.log('Proxy URL:', proxyUrl);
+  }
 });
