@@ -1,11 +1,12 @@
 // Claude API integration using direct HTTP calls
 // Note: Due to CORS restrictions, this approach uses direct fetch with proper headers
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const API_KEY = process.env.REACT_APP_ANTHROPIC_API_KEY;
+// const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+// const API_KEY = process.env.REACT_APP_ANTHROPIC_API_KEY;
 
 // Generate intelligent mock responses based on enterprise data
 const generateMockResponse = (enterpriseData) => {
-  const { companyName, industry, companyType, description } = enterpriseData;
+  // const { companyName, industry, companyType, description } = enterpriseData;
+   const {  industry   } = enterpriseData;
   
   // Industry-specific RWA cases
   const industryMappings = {
