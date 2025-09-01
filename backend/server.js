@@ -147,6 +147,69 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'RWA Search Backend is running' });
 });
 
+/**
+ * 意图预判接口 - 根据用户问题返回4个意图预判选项
+ */
+app.post('/api/intent-prediction', async (req, res) => {
+  try {
+    const { userQuestion } = req.body;
+    
+    if (!userQuestion) {
+      return res.status(400).json({ error: '用户问题不能为空' });
+    }
+    
+    console.log('收到意图预判请求:', { userQuestion });
+    
+    // 模拟API调用延迟
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // 固定的4个意图预判选项
+    const predictions = [
+      {
+        id: "intent_1",
+        description: "功能使用指导",
+        suggestion: "我想了解如何使用这个功能的详细步骤和操作方法"
+      },
+      {
+        id: "intent_2", 
+        description: "问题故障排查",
+        suggestion: "我遇到了问题，希望获得故障排查和解决方案"
+      },
+      {
+        id: "intent_3",
+        description: "配置和设置",
+        suggestion: "我需要配置相关设置，请提供详细的配置指南"
+      },
+      {
+        id: "intent_4",
+        description: "深入技术分析",
+        suggestion: "我希望深入了解技术原理和实现细节"
+      }
+    ];
+
+    const response = {
+      type: 'intent_prediction',
+      userQuestion: userQuestion,
+      predictions: predictions,
+      totalPredictions: predictions.length,
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json({
+      success: true,
+      data: response
+    });
+    
+  } catch (error) {
+    console.error('意图预判接口错误:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: '意图预判失败',
+      message: '抱歉，意图预判过程中出现错误，请稍后再试。'
+    });
+  }
+});
+
 // Claude API proxy endpoint
 app.post('/api/search-rwa-cases', async (req, res) => {
   try {
