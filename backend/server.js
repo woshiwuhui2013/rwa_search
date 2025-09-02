@@ -148,7 +148,8 @@ app.get('/health', (req, res) => {
 });
 
 /**
- * 意图预判接口 - 根据用户问题返回4个意图预判选项
+ * 意图预判接口 - 根据用户问题返回对应的数据内容
+ * 统一结构：{ category: '选项' | '结果', contentList: [...] }
  */
 app.post('/api/intent-prediction', async (req, res) => {
   try {
@@ -160,45 +161,114 @@ app.post('/api/intent-prediction', async (req, res) => {
     
     console.log('收到意图预判请求:', { userQuestion });
     
-    // 模拟API调用延迟
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // 固定的4个意图预判选项
-    const predictions = [
-      {
-        id: "intent_1",
-        description: "功能使用指导",
-        suggestion: "我想了解如何使用这个功能的详细步骤和操作方法"
-      },
-      {
-        id: "intent_2", 
-        description: "问题故障排查",
-        suggestion: "我遇到了问题，希望获得故障排查和解决方案"
-      },
-      {
-        id: "intent_3",
-        description: "配置和设置",
-        suggestion: "我需要配置相关设置，请提供详细的配置指南"
-      },
-      {
-        id: "intent_4",
-        description: "深入技术分析",
-        suggestion: "我希望深入了解技术原理和实现细节"
-      }
-    ];
+    let response;
 
-    const response = {
-      type: 'intent_prediction',
-      userQuestion: userQuestion,
-      predictions: predictions,
-      totalPredictions: predictions.length,
-      timestamp: new Date().toISOString()
+    // 场景1: 初始检查请求
+    if (userQuestion.includes('你好，可以帮我检查一份保密协议吗？')) {
+      response = {
+        category: '选项',
+        contentList: [
+          '主体信息完整性',
+          '项目名称明确性',
+          '保密信息的定义',
+          '保密义务的细化',
+          '保密期限',
+          '违约责任',
+          '法律适用与争议解决',
+          '其他建议',
+          '格式与表述'
+        ]
+      };
+    }
+    // 场景2: 要点调整
+    else if (userQuestion.includes('不合理的地方帮我调整')) {
+      response = {
+        category: '选项',
+        contentList: [
+          '主体信息完整性',
+          '项目名称明确性',
+          '保密信息的定义',
+          '保密义务的细化',
+          '保密期限',
+          '违约责任',
+          '法律适用与争议解决',
+          '调整不合理格式与表述'
+        ]
+      };
+    }
+    // 场景3: 附件上传完成
+    else if (userQuestion.includes('[附件]')) {
+      response = {
+        category: '结果',
+        contentList: [
+          {
+            point: '主体信息完整性',
+            result: '检查结果：主体信息不完整',
+            reason: '理由：甲方、乙方信息中留有空白（【     】），需确保在签署前完整填写名称、地址、联系人、电话、邮箱等',
+            suggestion: '建议：建议明确双方的主体类型（如公司、个人、合伙企业等），以便确定法律责任主体'
+          },
+          {
+            point: '项目名称明确性',
+            result: '检查结果：项目名称不明确',
+            reason: '理由：协议中"【     】项目"留有空白',
+            suggestion: '建议：协议中"【     】项目"应具体填写，避免模糊，否则可能影响保密范围的界定'
+          },
+          {
+            point: '保密信息的定义',
+            result: '检查结果：1.2条列举的保密信息范围较广',
+            reason: '',
+            suggestion: '建议：明确"口头方式提供的信息"如何确认（如是否需后续书面确认）'
+          },
+          {
+            point: '保密义务的细化',
+            result: '检查结果：2.5条允许乙方在必要情况下向雇员披露，但未明确"合理需要"的判断标准',
+            reason: '',
+            suggestion: '1.建议可加入"仅限于为实现项目目的所必需"的表述；2.可补充乙方对subcontractor（分包商/第三方服务商）的保密义务约束，若项目涉及第三方参与，应要求乙方确保第三方承担同等保密义务。'
+          },
+          {
+            point: '保密期限',
+            result: '检查结果：第三条约定"永久有效"，虽常见于保密协议，但若涉及商业秘密，请参考建议',
+            reason: '',
+            suggestion: '明确：1.某些信息可能随时间公开或失去保密价值，可约定"直至该信息进入公共领域为止"或可约定"自披露之日起【X】年内有效"，更具操作性。'
+          },
+          {
+            point: '违约责任',
+            result: '检查结果：第六条约定违约金为固定金额，但未写明具体金额',
+            reason: '',
+            suggestion: '1.明确该违约金是否涵盖所有违约情形或根据可能造成的损失程度设定阶梯式违约金；2.注明"违约金不足以弥补损失的，乙方还应赔偿差额部分"。'
+          },
+          {
+            point: '法律适用与争议解决',
+            result: '检查结果：清晰可行',
+            reason: '理由：7.3条约定适用中国法律，诉讼管辖为甲方所在地法院',
+            suggestion: ''
+          },
+          {
+            point: '调整不合理格式与表述',
+            result: '不合理表述：协议中使用"乙方负有……义务"等表述较为正式，但部分句子较长，可适当分句提升可读性',
+            reason: '',
+            suggestion: '[附件（修订版）]'
+          }
+        ]
+      };
+    }
+    // 默认回退
+    else {
+      response = {
+        category: '选项',
+        contentList: ['通用处理']
+      };
+    }
+
+    const finalResponse = {
+      success: true,
+      data: {
+        ...response,
+        timestamp: new Date().toISOString()
+      }
     };
     
-    res.json({
-      success: true,
-      data: response
-    });
+    res.json(finalResponse);
     
   } catch (error) {
     console.error('意图预判接口错误:', error);
